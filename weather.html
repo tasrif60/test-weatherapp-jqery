@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>Click the button to get your current condition.</p>
+
+<button onclick="getLocation()">Try It</button>
+<p id="demo"></p>
+
+<div>
+	<p id="temp">
+	</p>
+	<p id="weatherType">
+	</p>
+	<p id="isDay">
+	</p>
+</div>
+
+<script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+
+<script>
+var x = document.getElementById("demo");
+
+function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showPosition);
+  } else { 
+    x.innerHTML = "Geolocation is not supported by this browser.";
+  }
+}
+
+function showPosition(position) {
+  var api_url = 'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey='
+  var key = '3t7EAkvBFdWqQPHgLKAIIQJ6UyGfBVxb';
+  var locationKey = '28081'
+  
+	$.get( api_url + key + "&q=" + position.coords.latitude + "%2C" + position.coords.longitude, function( data ) {
+		
+		var locationApi = "http://dataservice.accuweather.com/currentconditions/v1/";
+		var locationKey = data.Key;
+		$.get( locationApi + locationKey + "?apikey=" + key, function( result ) {
+			$('#temp').html(result[0].Temperature.Metric.Value + '\xB0' + result[0].Temperature.Metric.Unit);
+			$('#weatherType').html(result[0].WeatherText);
+			if(result[0].IsDayTime){
+				$('#isDay').html("Day");
+			} else{
+				$('#isDay').html("Night");
+			}
+		});
+
+	});
+}
+
+</script>
+</body>
+</html>
