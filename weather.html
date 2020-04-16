@@ -10,6 +10,7 @@
 
 <button id="time">Current Time and Date</button>
 <p id="demo"></p>
+<p id="log"></p>
 
 <div>
 	<p id="temp">
@@ -30,19 +31,30 @@
 	<audio class="music" id="windy" controls preload="none" hidden> 
 		<source src="Wind.wav" type="audio/mpeg">
 	</audio>
-	<audio class="Storm" id="cloudy" controls preload="none" hidden> 
+	<audio class="music" id="cloudy" controls preload="none" hidden> 
 		<source src="Storm.mp3" type="audio/mpeg">
 	</audio>
 
 </div>
 
+<input type="file" accept="audio/*">
+  <button onclick="playSound()" disabled>Start</button>
+  <button onclick="stopSound()" disabled>Stop</button>
+
 <script
   src="https://code.jquery.com/jquery-3.4.1.min.js"
   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
   crossorigin="anonymous"></script>
+  
+  <script
+  src="C:\Work\JavaScript\test-weatherapp-jqery\songs-file.js"></script>
 
 <script>
+
+var playingMusicId;
 var x = document.getElementById("demo");
+var latitude;
+var longitude;
 var flag;
 var weatherId;
 var rainy = [18, 12];
@@ -53,12 +65,14 @@ var week = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 's
 const msg = new SpeechSynthesisUtterance();
 let voices = [];
 window.onload=function(){
-     getLocation();
+	getLocation();
+    setInterval(function() {console.log("");}, 50000);
+	setInterval(showPosition, 50000);
 }
 
 function getLocation() {
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(showPosition);
+    navigator.geolocation.getCurrentPosition(givePosition);
   } else { 
     x.innerHTML = "Geolocation is not supported by this browser.";
   }
@@ -104,24 +118,47 @@ $('.music-player1').click(function() {
 
 });
 
+function musicArray(weatherId) {
+	
+	if(jQuery.inArray(weatherId, rainy) !== -1) {
+		playOrPauseMusic("rainy");
+	}
+	else if(jQuery.inArray(weatherId, sunny) !== -1) {
+		playOrPauseMusic("sunny");
+	}
+	else if(jQuery.inArray(weatherId, windy) !== -1) {
+		playOrPauseMusic("windy");
+	}
+	else {
+		playOrPauseMusic("cloudy");
+	}
+}
+
 function playOrPauseMusic(id) {
 	var flag = document.getElementById(id).paused;
 	if(flag) {
 		$('#'+ id).trigger('play');
+		enableLoop(id);
+		playingMusicId = id;
 	}
 	else {
 		$('#' + id).trigger('pause');
+		playingMusicId = null;
 	}
 		
 }
 
+function givePosition(position) {
+	latitude = position.coords.latitude;
+	longitude = position.coords.longitude;
+	showPosition();
+}
 
-function showPosition(position) {
+function showPosition() {
   var api_url = 'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey='
-  var key = '3t7EAkvBFdWqQPHgLKAIIQJ6UyGfBVxb';
-  var locationKey = '28081'
+  var key = 'WQ6vJOs0BomGMCaxHmkHJ6tiBfDQMTG1';
   
-	$.get( api_url + key + "&q=" + position.coords.latitude + "%2C" + position.coords.longitude, function( data ) {
+	$.get( api_url + key + "&q=" + latitude + "%2C" + longitude, function( data ) {
 		
 		var locationApi = "http://dataservice.accuweather.com/currentconditions/v1/";
 		var locationKey = data.Key;
@@ -133,11 +170,45 @@ function showPosition(position) {
 			} else{
 				$('#isDay').html("Night");
 			}
-			weatherId = result[0].WeatherIcon;
+			if (weatherId != result[0].WeatherIcon) {
+				weatherId = result[0].WeatherIcon;
+			}
+			
 		});
 
 	});
 }
+
+// For playing music using 'space' key word
+
+document.addEventListener('keydown', logKey);
+
+function logKey(e) {
+
+	if(e.keyCode === 32){
+		speakCurrentCondition();
+		musicArray(weatherId);
+	}
+  
+}
+
+// For Looping the audio
+
+function enableLoop(id) { 
+  document.getElementById(id).loop = true;
+} 
+
+//For Speaking Current Condition
+
+function speakCurrentCondition() {
+	var x = document.getElementById('temp').textContent;
+	//msg.voice = speechSynthesis.getVoices().find(voice => voice.name === 'Google US English');
+	msg.text = "It's " + x + " outside.";
+	if(!playingMusicId) {
+		toggle();
+	}
+}
+
 
 </script>
 </body>
