@@ -1,28 +1,4 @@
-<html>
-<head>
-<script type=text/javascript>
-
- window.onload = init;
- var context;
- var bufferLoader;
-
-
-
-    function init(){
-
-    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-  context = new AudioContext();
-    bufferLoader = new BufferLoader(
-          context,
-          [
-             ' Sunny.mp3'
-          ],
-          finishedLoading 
-        );
-    bufferLoader.load();
- }
-
-     function finishedLoading(bufferList){
+function finishedLoading(bufferList){
     //make two sources and play them
     var source1 = context.createBufferSource();
     source1.buffer = bufferList[0];
@@ -75,9 +51,3 @@ BufferLoader.prototype.load = function() {
   for (var i = 0; i < this.urlList.length; ++i)
   this.loadBuffer(this.urlList[i], i);
 }
-
-   </script>
-   </head>
-   <body>
-   </body>
-   </html>

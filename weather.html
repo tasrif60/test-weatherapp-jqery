@@ -37,17 +37,19 @@
 
 </div>
 
-<input type="file" accept="audio/*">
-  <button onclick="playSound()" disabled>Start</button>
-  <button onclick="stopSound()" disabled>Stop</button>
+<select id="songs" >
+  <option value="rain.wav">rainy</option>
+  <option value="Sunny.mp3">sunny</option>
+  <option value="Wind.wav">windy</option>
+  <option value="Storm.mp3">cloudy</option>
+</select>
 
 <script
   src="https://code.jquery.com/jquery-3.4.1.min.js"
   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
   crossorigin="anonymous"></script>
   
-  <script
-  src="C:\Work\JavaScript\test-weatherapp-jqery\songs-file.js"></script>
+  
 
 <script>
 
@@ -55,7 +57,9 @@ var playingMusicId;
 var x = document.getElementById("demo");
 var latitude;
 var longitude;
-var flag;
+var isPlayingAnySong = false;
+var flag = false;
+var song;
 var weatherId;
 var rainy = [18, 12];
 var sunny = [1,2,3,4,5,6, 23, 20, 21, 17,16,14,30];
@@ -63,12 +67,33 @@ var windy = [38, 37,36,35,34,33,32, 39,40,41,42];
 var cloudy = [7, 8,11, 13, 15, 19,38, 43, 44];
 var week = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const msg = new SpeechSynthesisUtterance();
-let voices = [];
+var context;
+var bufferLoader;
 window.onload=function(){
+	loadWebAudioApi();
 	getLocation();
     setInterval(function() {console.log("");}, 50000);
 	setInterval(showPosition, 50000);
 }
+
+function loadWebAudioApi() {
+	
+	window.AudioContext = window.AudioContext || window.webkitAudioContext;
+	context = new AudioContext();
+}
+
+function nowPlay() {
+
+	bufferLoader = new BufferLoader(
+          context,
+          [
+             song
+          ],
+          finishedLoading 
+        );
+    bufferLoader.load();
+}
+
 
 function getLocation() {
   if (navigator.geolocation) {
@@ -103,16 +128,16 @@ function toggle() {
 $('.music-player1').click(function() {
 	
 	if(jQuery.inArray(weatherId, rainy) !== -1) {
-		playOrPauseMusic("rainy");
+		playOrPauseMusic("rain.wav");
 	}
 	else if(jQuery.inArray(weatherId, sunny) !== -1) {
-		playOrPauseMusic("sunny");
+		playOrPauseMusic("Sunny.mp3");
 	}
 	else if(jQuery.inArray(weatherId, windy) !== -1) {
-		playOrPauseMusic("windy");
+		playOrPauseMusic("Wind.wav");
 	}
 	else {
-		playOrPauseMusic("cloudy");
+		playOrPauseMusic("Storm.mp3");
 	}
 	
 
@@ -121,21 +146,25 @@ $('.music-player1').click(function() {
 function musicArray(weatherId) {
 	
 	if(jQuery.inArray(weatherId, rainy) !== -1) {
-		playOrPauseMusic("rainy");
+		song = "rain.wav";
+		playOrPauseMusic();
 	}
 	else if(jQuery.inArray(weatherId, sunny) !== -1) {
-		playOrPauseMusic("sunny");
+		song = "Sunny.mp3";
+		playOrPauseMusic();
 	}
 	else if(jQuery.inArray(weatherId, windy) !== -1) {
-		playOrPauseMusic("windy");
+		song = "Wind.wav";
+		playOrPauseMusic();
 	}
 	else {
-		playOrPauseMusic("cloudy");
+		song = "Storm.mp3";
+		playOrPauseMusic();
 	}
 }
 
-function playOrPauseMusic(id) {
-	var flag = document.getElementById(id).paused;
+function playOrPauseMusic() {
+	/*var flag = document.getElementById(id).paused;
 	if(flag) {
 		$('#'+ id).trigger('play');
 		enableLoop(id);
@@ -144,8 +173,8 @@ function playOrPauseMusic(id) {
 	else {
 		$('#' + id).trigger('pause');
 		playingMusicId = null;
-	}
-		
+	}*/
+	nowPlay();
 }
 
 function givePosition(position) {
@@ -153,6 +182,8 @@ function givePosition(position) {
 	longitude = position.coords.longitude;
 	showPosition();
 }
+
+// Call Accu weather Api for current temperature
 
 function showPosition() {
   var api_url = 'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey='
@@ -187,7 +218,12 @@ function logKey(e) {
 
 	if(e.keyCode === 32){
 		speakCurrentCondition();
-		musicArray(weatherId);
+		if(flag) {
+			playOrPauseMusic();
+		}
+		else {
+			musicArray(weatherId);
+		}
 	}
   
 }
@@ -204,11 +240,80 @@ function speakCurrentCondition() {
 	var x = document.getElementById('temp').textContent;
 	//msg.voice = speechSynthesis.getVoices().find(voice => voice.name === 'Google US English');
 	msg.text = "It's " + x + " outside.";
-	if(!playingMusicId) {
+	if(!isPlayingAnySong) {
 		toggle();
 	}
 }
 
+//Select a particular song
+var selectElement = document.getElementById("songs").addEventListener("change", function (e) {
+	flag = true;
+	song = e.target.value;
+});
+
+
+var source;
+function finishedLoading(bufferList){
+    
+	if (!isPlayingAnySong) {
+		source = context.createBufferSource();
+		source.buffer = bufferList[0];
+		source.connect(context.destination);
+		source.loop = true;
+		source.start(0);
+		isPlayingAnySong = true;
+	} else {
+		source.stop(0);
+		isPlayingAnySong = false;
+	}
+    
+ }
+function BufferLoader(context, urlList, callback) {
+  this.context = context;
+  this.urlList = urlList;
+  this.onload = callback;
+  this.bufferList = new Array();
+  this.loadCount = 0;
+}
+
+BufferLoader.prototype.loadBuffer = function(url, index) {
+  // Load buffer asynchronously
+  var request = new XMLHttpRequest();
+  request.open("GET", url, true);
+  request.responseType = "arraybuffer";
+
+  var loader = this;
+
+  request.onload = function() {
+    // Asynchronously decode the audio file data in request.response
+    loader.context.decodeAudioData(
+      request.response,
+      function(buffer) {
+        if (!buffer) {
+          alert('error decoding file data: ' + url);
+          return;
+        }
+        loader.bufferList[index] = buffer;
+        if (++loader.loadCount == loader.urlList.length)
+          loader.onload(loader.bufferList);
+      },
+      function(error) {
+        console.error('decodeAudioData error', error);
+      }
+    );
+  }
+
+  request.onerror = function() {
+    alert('BufferLoader: XHR error');
+  }
+
+  request.send();
+}
+
+BufferLoader.prototype.load = function() {
+  for (var i = 0; i < this.urlList.length; ++i)
+  this.loadBuffer(this.urlList[i], i);
+}
 
 </script>
 </body>
